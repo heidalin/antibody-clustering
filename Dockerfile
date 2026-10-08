@@ -1,21 +1,19 @@
-# Start with a lightweight Python foundation
-FROM python:3.10-slim
+FROM public.ecr.aws/docker/library/python:3.10-slim
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Install C++ compilers required for fastcluster and rapidfuzz
-RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+RUN pip install --upgrade pip
 
-# Copy the dependencies file and install
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all your code into the container
+RUN --mount=type=cache,target=/root/.cache/pip \
+    while ! pip install --default-timeout=2000 --retries=50 -r requirements.txt; do \
+        echo "Network dropped! Resuming download..."; \
+        sleep 3; \
+    done
+
 COPY . .
 
-# Expose the port Streamlit uses for the web interface
 EXPOSE 8501
 
-# Command to launch the web interface when the container starts
 CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
